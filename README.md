@@ -54,7 +54,7 @@ Adjust paths to match your machine.
       "args": [
         "run",
         "--directory",
-        "C:\\githunb\\mcp-servers\\shellserver",
+        "/github/mcp-servers/shellserver",
         "server.py"
       ]
     }
