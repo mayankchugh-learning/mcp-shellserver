@@ -2,8 +2,9 @@
 .venv/
 venv/
 env/
+ENV/
 
-# Environment and secrets
+# Environment and secrets (never commit real keys)
 .env
 .env.*
 !.env.example
@@ -26,20 +27,32 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Test / type / lint caches
+# Test / type / lint / coverage
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+.hypothesis/
 
 # OS
 .DS_Store
 Thumbs.db
+*.log
 
-# IDE (optional — remove lines if you commit these)
+# IDE / editors (drop a line if you intentionally commit these)
 .idea/
+.vscode/
+*.swp
+*.swo
+*~

@@ -1,0 +1,2 @@
+# Aligned with pyproject.toml — use `uv add -r requirements.txt` to import into the project, or `uv sync` from the lockfile.
+fastmcp>=3.2.0
