@@ -7,8 +7,8 @@ Replace the branch name and commit message as needed.
 ```bash
 git switch --orphan project/resources
 ```
-### `create or add .gitignore`
-### `create or add  requirements.txt`
+##### `create or add .gitignore`
+##### `create or add  requirements.txt`
 ```bash
 git add -A
 git commit -m "Initial commit for MCP resources"'
