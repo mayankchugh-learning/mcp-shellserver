@@ -2,6 +2,8 @@
 
 This document records issues seen with this project (**FastMCP**, **MCP Inspector**, **Claude Desktop**), including **symptoms**, **root cause**, and **what to do**.
 
+Project overview and commands: [`README.md`](README.md).
+
 ---
 
 ## Architecture (pick one flow; do not mix incompatible settings)
@@ -20,7 +22,7 @@ This document records issues seen with this project (**FastMCP**, **MCP Inspecto
 - In the Inspector: **Streamable HTTP**, URL **`http://127.0.0.1:8000/mcp`**, **Connection type: Direct**.
 - **`main.py`** must include **CORS** for Inspector origins and **`expose_headers`** for **`mcp-session-id`** (see `main.py`).
 
-### Flow C — `uv run fastmcp dev inspector fastmcp.json` (recommended Streamable HTTP + dev inspector)
+### Flow C — `uv run fastmcp dev inspector fastmcp.json` (Streamable HTTP + dev inspector)
 
 - This repo’s **[`fastmcp.json`](fastmcp.json)** sets **`deployment.transport`** to **`streamable-http`** and **`127.0.0.1:8000`**.
 - The subprocess runs **`fastmcp run fastmcp.json`**, which **does** bind **8000** for Streamable HTTP.
@@ -28,6 +30,7 @@ This document records issues seen with this project (**FastMCP**, **MCP Inspecto
   - **`uv run fastmcp dev inspector fastmcp.json`**, or
   - **`uv run fastmcp dev inspector`** (auto-detects **`fastmcp.json`** in the current directory).
 - Then in the Inspector use **Streamable HTTP**, **`http://127.0.0.1:8000/mcp`**, **Direct** (prefer **`127.0.0.1`** over **`localhost`** on Windows if IPv6 causes odd failures).
+- **Imports vs `__main__`:** that subprocess **imports** `main.py` but does **not** run **`if __name__ == "__main__"`**. The **`CORSMiddleware`** and **`expose_headers`** that the **browser** needs for **Direct** (see sections [4](#4-cors-cross-origin--inspector-on-6274-server-on-8000) and [5](#5-bad-request-missing-session-id-json-rpc-32600)) apply only when you start HTTP via **`uv run python main.py --http`**. If **Direct** fails with CORS or **Missing session ID**, use **Flow B** or read **section 11** below.
 
 **Summary:** **`fastmcp dev inspector main.py`** alone does **not** open **`8000/mcp`**. Use **Flow C** or **Flow B** for that URL.
 
@@ -89,7 +92,7 @@ This document records issues seen with this project (**FastMCP**, **MCP Inspecto
 |------|--------|
 | **Symptom** | *Failed to fetch* in the browser Inspector; `curl` may still work. |
 | **Root cause** | Origins **`http://localhost:6274`** and **`http://127.0.0.1:8000`** differ. Without CORS, **`fetch`** from the Inspector page is blocked. |
-| **What to do** | Keep **`CORSMiddleware`** on **`--http`** / **`fastmcp.json`** HTTP mode with Inspector origins. See **`main.py`**. |
+| **What to do** | Use **`uv run python main.py --http`** so the Starlette **`CORSMiddleware`** in **`main.py`** runs (the **`if __name__ == "__main__"`** path). **`uv run fastmcp run fastmcp.json`** loads the app without that block, so the browser may still hit CORS until you use Flow B or extend the server setup. See **section 11**. |
 
 ---
 
@@ -99,7 +102,7 @@ This document records issues seen with this project (**FastMCP**, **MCP Inspecto
 |------|--------|
 | **Symptom** | Connect progresses then fails with *Missing session ID* on Streamable HTTP. |
 | **Root cause** | Streamable HTTP uses the **`mcp-session-id`** response header; under CORS the browser must see it via **`Access-Control-Expose-Headers`**. |
-| **What to do** | **`expose_headers`** must include **`mcp-session-id`** (and related MCP headers). See **`main.py`** and `mcp.server.streamable_http` constants. |
+| **What to do** | Same as CORS: the working setup in this repo is under **`python main.py --http`**. Ensure **`expose_headers`** lists **`mcp-session-id`**, **`mcp-protocol-version`**, and **`last-event-id`**. See **`main.py`** and `mcp.server.streamable_http` constants. See **section 11** if you only use **`fastmcp run fastmcp.json`**.
 
 ---
 
@@ -153,12 +156,22 @@ This document records issues seen with this project (**FastMCP**, **MCP Inspecto
 
 ---
 
+## 11. Browser Inspector — CORS / Missing session ID with `fastmcp run fastmcp.json` only
+
+| Item | Detail |
+|------|--------|
+| **Symptom** | **Flow C** (or `uv run fastmcp run fastmcp.json`) serves **`/mcp`** on **8000**, but the Inspector **(Direct)** reports CORS errors, *Failed to fetch*, or **Missing session ID**. |
+| **Root cause** | **`fastmcp run fastmcp.json`** imports **`main.py`** and starts **`run_http_async`** **without** the **`middleware=[...]`** passed in **`main.py`’s** `if __name__ == "__main__"` branch. So the **`CORSMiddleware`** and **`expose_headers`** that the browser needs are **not** applied. |
+| **What to do** | Prefer **`uv run python main.py --http`** when using the **browser** Inspector with **Direct** to **8000**. Alternatively, run the Inspector in a mode that does not require cross-origin `fetch` to **8000** (e.g. **stdio** via **`fastmcp dev inspector main.py`** and the printed URL), or refactor the server so HTTP middleware is registered in a path that runs for **all** HTTP entrypoints (not only `__main__`). |
+
+---
+
 ## Quick reference checklists
 
 ### Streamable HTTP in browser → `8000/mcp`
 
-1. **Flow C:** `uv run fastmcp dev inspector fastmcp.json` (or `uv run fastmcp dev inspector`), **or**
-2. **Flow B:** `uv run python main.py --http` in a dedicated terminal (leave it running).
+1. **Flow B (most reliable for Direct):** `uv run python main.py --http` — keeps **CORS** + **`expose_headers`** from `main.py`.
+2. **Flow C:** `uv run fastmcp dev inspector fastmcp.json` — use if connection works; if the browser hits **CORS** / **Missing session ID**, fall back to **Flow B** (see **section 11**).
 3. Inspector: **Transport** = Streamable HTTP, **URL** = `http://127.0.0.1:8000/mcp`, **Connection** = **Direct** (clear proxy token if it causes auth noise).
 
 ### Dev inspector with stdio only (`fastmcp run main.py`)

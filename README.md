@@ -2,6 +2,10 @@
 
 FastMCP server that exposes a **research prompt** and a small **tool** used to verify Claude Desktop wiring.
 
+**Requirements:** Python **3.13+** (see [`pyproject.toml`](pyproject.toml)), [**uv**](https://docs.astral.sh/uv/), and **Node.js** (for `npx`, used by `fastmcp dev inspector`).
+
+**More help:** [`troubleshooting.md`](troubleshooting.md) (Inspector flows, ports, Claude Desktop, common errors).
+
 ## GitHub & repository setup
 
 ### `.gitignore`
@@ -93,6 +97,18 @@ For browser **MCP Inspector** with **Streamable HTTP**, the server must listen o
 
 This project includes `ping_research_server` so you can confirm tools are listed after a restart.
 
+### Other editors (e.g. Cursor)
+
+Configure MCP in that product’s settings (workspace or user). This repo may include a placeholder [`mcp.json`](mcp.json); wire it per your editor’s docs—often the same **stdio** pattern as Claude (`python` + `main.py`).
+
+## Local dev ports (reference)
+
+| Port | Role |
+|------|------|
+| **8000** | Streamable HTTP MCP endpoint (`/mcp`) when using [`fastmcp.json`](fastmcp.json) or `python main.py --http` |
+| **6274** | MCP Inspector **browser UI** (default) |
+| **6277** | MCP Inspector **proxy** (default; used with “Via Inspector Proxy”) |
+
 ## Run
 
 **Stdio** (Claude Desktop, Cursor, and most local MCP clients):
@@ -107,11 +123,19 @@ uv run python main.py
 uv run python main.py --http
 ```
 
-**Equivalent stdio entry** via CLI:
+**Stdio via CLI** (same as `python main.py`; no HTTP on 8000):
 
 ```bash
 uv run fastmcp run main.py
 ```
+
+**Streamable HTTP via CLI** (uses deployment in [`fastmcp.json`](fastmcp.json); no Inspector UI):
+
+```bash
+uv run fastmcp run fastmcp.json
+```
+
+> **Browser Inspector + Direct to `8000`:** the **`CORSMiddleware`** and **`expose_headers`** in `main.py` run only on **`python main.py --http`** (the `if __name__ == "__main__"` path). If the Inspector shows **CORS** or **Missing session ID** while using **`fastmcp dev inspector fastmcp.json`** with **Direct**, run **`uv run python main.py --http`** in a second terminal instead, or see **section 11** in [`troubleshooting.md`](troubleshooting.md).
 
 ## MCP Inspector
 
@@ -129,6 +153,12 @@ Or auto-detect `fastmcp.json` in the current directory:
 uv run fastmcp dev inspector
 ```
 
+**Stdio-only dev** (no HTTP on 8000; use the URL + token the CLI prints):
+
+```bash
+uv run fastmcp dev inspector main.py
+```
+
 In the Inspector UI use:
 
 - **Transport:** Streamable HTTP  
@@ -136,3 +166,8 @@ In the Inspector UI use:
 - **Connection type:** Direct  
 
 If you still see auth-related errors, clear **Proxy Session Token** when using **Direct**, or switch to **Via Inspector Proxy** and fill **Inspector Proxy Address** plus the token from the terminal output.
+
+## See also
+
+- [`troubleshooting.md`](troubleshooting.md) — flows, **127.0.0.1** vs **localhost**, port in use, `PromptMessage` import, proxy token
+- [`fastmcp.json`](fastmcp.json) — `streamable-http` on **127.0.0.1:8000**
