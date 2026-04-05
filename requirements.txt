@@ -1,0 +1,7 @@
+langchain-mcp-adapters
+langgraph
+langchain[openai]
+langchain-anthropic
+python-dotenv
+asyncio
+isort
