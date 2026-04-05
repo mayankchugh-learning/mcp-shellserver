@@ -1,6 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
+import sys
 
 from dotenv import load_dotenv
 
